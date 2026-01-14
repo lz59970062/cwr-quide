@@ -7,6 +7,10 @@ from options.train_options import TrainOptions
 from data import create_dataset
 from models import create_model
 from util.visualizer import Visualizer
+# train-worker
+import setproctitle
+import time
+setproctitle.setproctitle("train-worker01")
 
 
 if __name__ == '__main__':

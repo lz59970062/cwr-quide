@@ -6,7 +6,7 @@ source .venv/bin/activate
 
 # 将 uwiqf 加入 python 路径
 export PYTHONPATH=/home/lizhi_2024/program/udw_compare/uwiqf:$PYTHONPATH
-
+export PYTHONPATH=../uwiqf:$PYTHONPATH
 # Run training
 # qg_modelconfig="../uwiqf/checkpoints_uwiqf_pairsselfdefect9/basic_training_configselfdefect9.yaml"
 # qg_modelcheckpoint="../uwiqf/checkpoints_uwiqf_pairsselfdefect9/checkpoint_epoch_19"
