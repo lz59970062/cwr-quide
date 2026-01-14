@@ -8,8 +8,10 @@ source .venv/bin/activate
 export PYTHONPATH=/home/lizhi_2024/program/udw_compare/uwiqf:$PYTHONPATH
 
 # Run training
-qg_modelconfig="../uwiqf/checkpoints_uwiqf_pairsselfdefect9/basic_training_configselfdefect9.yaml"
-qg_modelcheckpoint="../uwiqf/checkpoints_uwiqf_pairsselfdefect9/checkpoint_epoch_19"
+# qg_modelconfig="../uwiqf/checkpoints_uwiqf_pairsselfdefect9/basic_training_configselfdefect9.yaml"
+# qg_modelcheckpoint="../uwiqf/checkpoints_uwiqf_pairsselfdefect9/checkpoint_epoch_19"
+qg_modelconfig="../udw-enhance/checkpoints_uwiqf_pairsselfdefect9/basic_training_configselfdefect9.yaml"  
+qg_modelcheckpoint="../udw-enhance/checkpoints_uwiqf_pairsselfdefect9/checkpoint_epoch_19"  
 lambda_qg=5
 
 python traincwr.py \
