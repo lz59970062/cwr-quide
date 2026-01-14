@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Environment variables
-export CUDA_VISIBLE_DEVICES=3
+export CUDA_VISIBLE_DEVICES=4
 source .venv/bin/activate 
 
 # 将 uwiqf 加入 python 路径
@@ -23,4 +23,5 @@ python traincwr.py \
     --lambda_QG $lambda_qg \
     --qg_modelconfig $qg_modelconfig \
     --qg_modelcheckpoint $qg_modelcheckpoint \
-    --display_id 0 
+    --display_id 0 \
+    --batch_size 8

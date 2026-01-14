@@ -1,7 +1,7 @@
 import time
 import os 
-os.environ['NCCL_P2P_DISABLE'] = '1'
-os.environ['NCCL_IB_DISABLE'] = '1'
+# os.environ['NCCL_P2P_DISABLE'] = '1'
+# os.environ['NCCL_IB_DISABLE'] = '1'
 import torch
 from options.train_options import TrainOptions
 from data import create_dataset
