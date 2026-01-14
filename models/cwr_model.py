@@ -24,6 +24,11 @@ class CWRModel(BaseModel):
         parser.add_argument('--lambda_GAN', type=float, default=1.0, help='weight for GAN loss：GAN(G(X))')
         parser.add_argument('--lambda_NCE', type=float, default=1.0, help='weight for NCE loss: NCE(G(X), X)')
         parser.add_argument('--lambda_IDT', type=float, default=10.0, help='weight for NCE loss: NCE(G(X), X)')
+        parser.add_argument('--lambda_QG', type=float, default=1.0, help='weight for quality guidance loss')
+        parser.add_argument('--qg_model_path', type=str, default='checkpoints/qg_model.pth', help='path to pre-trained QG model')
+        parser.add_argument('--qg_modelconfig', type=str, default='', help='config for QG model')
+        parser.add_argument('--qg_modelcheckpoint', type=str, default='', help='checkpoint for QG model')
+        parser.add_argument('--qg_map_wt', type=float, default=0.5, help='weight for qg map in qg loss')
         parser.add_argument('--nce_idt', type=util.str2bool, nargs='?', const=True, default=False, help='use NCE loss for identity mapping: NCE(G(Y), Y))')
         parser.add_argument('--nce_layers', type=str, default='0,4,8,12,16', help='compute NCE loss on which layers')
         parser.add_argument('--nce_includes_all_negatives_from_minibatch',
@@ -50,7 +55,7 @@ class CWRModel(BaseModel):
 
         # specify the training losses you want to print out.
         # The training/test scripts will call <BaseModel.get_current_losses>
-        self.loss_names = ['G_GAN', 'D_real', 'D_fake', 'G', 'NCE', 'idt']
+        self.loss_names = ['G_GAN', 'D_real', 'D_fake', 'G', 'NCE', 'idt', 'QG']
         self.visual_names = ['real_A', 'fake_B', 'real_B']
         self.nce_layers = [int(i) for i in self.opt.nce_layers.split(',')]
 
@@ -62,6 +67,7 @@ class CWRModel(BaseModel):
             self.model_names = ['G', 'F', 'D']
         else:  # during test time, only load G
             self.model_names = ['G']
+            self.visual_names = ['real_A', 'fake_B']
 
         # define networks (both generator and discriminator)
         self.netG = networks.define_G(opt.input_nc, opt.output_nc, opt.ngf, opt.netG, opt.normG, not opt.no_dropout, opt.init_type, opt.init_gain, opt.no_antialias, opt.no_antialias_up, self.gpu_ids, opt)
@@ -82,6 +88,21 @@ class CWRModel(BaseModel):
             self.optimizer_D = torch.optim.Adam(self.netD.parameters(), lr=opt.lr, betas=(opt.beta1, opt.beta2))
             self.optimizers.append(self.optimizer_G)
             self.optimizers.append(self.optimizer_D)
+            self.qg_map_wt = opt.qg_map_wt
+            
+            if self.opt.lambda_QG > 0:
+                from train.infer import IQAModel
+                self.net_qg = IQAModel(opt.qg_modelconfig,
+                                    opt.qg_modelcheckpoint, 
+                                    no_sizechange=True)
+                if self.net_qg is not None:
+                    self.net_qg = self.net_qg.to(self.device)
+                    self.net_qg.requires_grad_(False)
+                    self.net_qg.eval()
+                else: 
+                    raise ValueError("Failed to load QG model from the given config and checkpoint.")  
+            else:
+                self.net_qg = None 
 
     def data_dependent_initialize(self, data):
         """
@@ -131,9 +152,20 @@ class CWRModel(BaseModel):
         The option 'direction' can be used to swap domain A and domain B.
         """
         AtoB = self.opt.direction == 'AtoB'
-        self.real_A = input['A' if AtoB else 'B'].to(self.device)
-        self.real_B = input['B' if AtoB else 'A'].to(self.device)
-        self.image_paths = input['A_paths' if AtoB else 'B_paths']
+        if 'A' in input:
+            self.real_A = input['A'].to(self.device)
+            self.image_paths = input['A_paths'] if 'A_paths' in input else []
+        elif 'B' in input:
+            self.real_A = input['B'].to(self.device)
+            self.image_paths = input['B_paths'] if 'B_paths' in input else []
+        else:
+            raise KeyError("Neither 'A' nor 'B' found in input dictionary")
+
+        target_B = 'B' if AtoB else 'A'
+        if target_B in input:
+            self.real_B = input[target_B].to(self.device)
+        else:
+            self.real_B = self.real_A # dummy for test mode
 
     def forward(self):
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
@@ -185,9 +217,22 @@ class CWRModel(BaseModel):
         else:
             loss_NCE_both = self.loss_NCE
 
-        self.loss_G = self.loss_G_GAN + loss_NCE_both + self.loss_idt
-        return self.loss_G
+        if self.opt.lambda_QG > 0.0:
+            self.loss_QG = self.compute_qg_loss() * self.opt.lambda_QG
+        else:
+            self.loss_QG = 0.0
 
+        self.loss_G = self.loss_G_GAN + loss_NCE_both + self.loss_idt + self.loss_QG
+        return self.loss_G
+    
+    def compute_qg_loss(self):
+        pred_b  =  self.fake_B 
+        assert self.net_qg is not None, "net_qg must be defined to compute qg loss"  
+        self.net_qg.eval() 
+        score,qg_map = self.net_qg.infer(pred_b,return_map=True)
+        loss_qg = - torch.mean(score)   - torch.mean(qg_map)*self.qg_map_wt 
+        return loss_qg  
+        
     def calculate_NCE_loss(self, src, tgt):
         n_layers = len(self.nce_layers)
         feat_q = self.netG(tgt, self.nce_layers, encode_only=True)

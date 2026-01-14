@@ -66,5 +66,20 @@ if __name__ == '__main__':
         img_path = model.get_image_paths()     # get image paths
         if i % 5 == 0:  # save images to an HTML file
             print('processing (%04d)-th image... %s' % (i, img_path))
+
+        # --- 自定义保存逻辑：按 bad/good 文件夹分类 ---
+        short_path = os.path.basename(img_path[0])
+        bad_dir = os.path.join(opt.results_dir, 'bad')
+        good_dir = os.path.join(opt.results_dir, 'good')
+        os.makedirs(bad_dir, exist_ok=True)
+        os.makedirs(good_dir, exist_ok=True)
+
+        for label, im_data in visuals.items():
+            im = util.tensor2im(im_data)
+            if label == 'real_A':
+                util.save_image(im, os.path.join(bad_dir, short_path))
+            elif label == 'fake_B':
+                util.save_image(im, os.path.join(good_dir, short_path))
+
         save_images(webpage, visuals, img_path, width=opt.display_winsize)
     webpage.save()  # save the HTML

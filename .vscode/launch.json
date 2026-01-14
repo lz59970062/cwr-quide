@@ -1,0 +1,57 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python Debugger: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Debug Custom Dataset (train.py)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/train.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--dataroot", "data_pipe/export_underwater2/dataset_20250921_093929",
+                "--dataset_mode", "custom",
+                "--yaml_path", "data_pipe/export_underwater2/dataset_20250921_093929/dataset.yaml",
+                "--model", "cwr",
+                "--name", "cwr_test_all"
+            ],
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "0" 
+            }
+        },
+        {
+            "name": "Continue Train Custom Dataset (train.py)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/train.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--dataroot", "data_pipe/export_underwater2/dataset_20250921_093929",
+                "--dataset_mode", "custom",
+                "--yaml_path", "data_pipe/export_underwater2/dataset_20250921_093929/dataset.yaml",
+                "--model", "cwr",
+                "--name", "cwr_test_all",
+                "--continue_train"
+            ],
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "0" 
+            }
+        },
+        {
+            "name": "Debug Custom Dataset Test Script",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/test_custom_dataset.py",
+            "console": "integratedTerminal"
+        }
+    ]
+}
